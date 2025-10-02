@@ -7,21 +7,29 @@ import "./style.scss";
 const Slider = () => {
   const { data } = useData();
   const [index, setIndex] = useState(0);
-  const byDateDesc = data?.focus.sort((evtA, evtB) =>
-    new Date(evtA.date) < new Date(evtB.date) ? -1 : 1
-  );
-  const nextCard = () => {
-    setTimeout(
-      () => setIndex(index < byDateDesc.length ? index + 1 : 0),
-      5000
-    );
-  };
+
+  // Tri des événements par date ASC (plus ancien → plus récent)
+  const byDateAsc = data?.focus
+    ? [...data.focus].sort(
+        (evtA, evtB) => new Date(evtA.date) - new Date(evtB.date)
+      )
+    : [];
+
+  // Gestion du défilement automatique
   useEffect(() => {
-    nextCard();
-  });
+    if (!byDateAsc.length) {
+      return () => {}; // cleanup vide → évite l'erreur ESLint
+    }
+
+    const id = setInterval(() => {
+      setIndex((prev) => (prev + 1) % byDateAsc.length);
+    }, 5000);
+
+    return () => clearInterval(id);
+  }, [byDateAsc.length]);
   return (
     <div className="SlideCardList">
-      {byDateDesc?.map((event, idx) => (
+      {byDateAsc.map((event, idx) => (
         <>
           <div
             key={event.title}
@@ -40,12 +48,14 @@ const Slider = () => {
           </div>
           <div className="SlideCard__paginationContainer">
             <div className="SlideCard__pagination">
-              {byDateDesc.map((_, radioIdx) => (
+              {byDateAsc.map((_, radioIdx) => (
                 <input
-                  key={`${event.id}`}
+                  key={`pagination-${event.title}`}
                   type="radio"
                   name="radio-button"
-                  checked={idx === radioIdx}
+                  aria-label={`Aller au slide ${radioIdx + 1}`}
+                  checked={index === radioIdx}
+                  onChange={() => setIndex(radioIdx)}
                 />
               ))}
             </div>
